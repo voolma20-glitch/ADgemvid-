@@ -28,8 +28,14 @@ jobs:
         with:
           node-version: 20
 
-      - name: 🤖 إعداد بيئة Android SDK
-        uses: android-actions/setup-android@v3
+      - name: 🤖 قبول تراخيص Android SDK تلقائياً
+        run: |
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\nd56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-license" || true
+          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license" || true
+          echo -e "\n8525616234f9e38c767e81da0392d192934208a0" > "$ANDROID_HOME/licenses/intel-android-extra-license" || true
+          echo -e "\n33b6a2b649206b12a67e2a9a19dd168a7b76da0a" > "$ANDROID_HOME/licenses/google-gdk-license" || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: 📦 تثبيت حزم المشروع
         run: |
@@ -60,7 +66,7 @@ jobs:
         run: |
           mkdir -p output_apk
           find android/app/build/outputs/apk/debug/ -name "*.apk" -exec cp {} output_apk/ADgemvid-Android-v1.0.apk \;
-          echo "تم تجميع ملف الـ APK بنجاح:"
+          echo "✅ تم تجميع ملف الـ APK بنجاح:"
           ls -lh output_apk/
 
       - name: 📤 رفع ملف الـ APK للتحميل المباشر (Download Artifact)
