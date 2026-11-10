@@ -3,73 +3,74 @@ name: Build Android APK (ADgemvid)
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch: # يتيح تشغيل البناء يدوياً بضغطة زر واحدة من GitHub Actions
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build-apk:
-    name: Generate Android APK
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 استرجاع الكود المصدري (Checkout Code)
+      - name: 📥 استرجاع الكود المصدري (Checkout)
         uses: actions/checkout@v4
 
-      - name: ☕ إعداد بيئة Java 17 (Setup Java)
+      - name: ☕ إعداد بيئة Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 🟢 إعداد بيئة Node.js (Setup Node)
+      - name: 🟢 إعداد بيئة Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # تم إلغاء cache لتجنب الخطأ عند عدم وجود package-lock.json
 
       - name: 🤖 إعداد بيئة Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: 📦 تثبيت حزم المشروع (Install Dependencies)
+      - name: 📦 تثبيت حزم المشروع
         run: |
           npm install --legacy-peer-deps
 
-      - name: 🔨 بناء ملفات الواجهة (Build Web App)
+      - name: 🔨 بناء ملفات الواجهة (Web Build)
         run: |
           npm run build
 
-      - name: 📱 تثبيت محرك أندرويد عبر Capacitor (Setup Capacitor & Android)
+      - name: 📱 إعداد محرك Capacitor للأندرويد
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
           npx cap add android || true
           npx cap sync android
 
-      - name: 🔧 ضبط أذونات Gradle (Set Executable Permissions)
+      - name: 🔧 ضبط أذونات ملف Gradle
         run: |
           if [ -f android/gradlew ]; then
             chmod +x android/gradlew
           fi
 
-      - name: 🚀 بناء ملف APK بصيغة Debug (Assemble Android APK)
+      - name: 🚀 بناء ملف APK بصيغة Debug
         run: |
           cd android
           ./gradlew assembleDebug --no-daemon
 
-      - name: 🏷️ تجهيز وتسمية ملف APK (Prepare Output File)
+      - name: 🏷️ تجهيز ملف الـ APK النهائي
         run: |
           mkdir -p output_apk
           find android/app/build/outputs/apk/debug/ -name "*.apk" -exec cp {} output_apk/ADgemvid-Android-v1.0.apk \;
+          echo "تم تجميع ملف الـ APK بنجاح:"
+          ls -lh output_apk/
 
-      - name: 📤 رفع ملف APK كملف جاهز للتحميل (Upload APK Artifact)
+      - name: 📤 رفع ملف الـ APK للتحميل المباشر (Download Artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: ADgemvid-Android-APK
+          name: ADgemvid-Android-v1.0.apk
           path: output_apk/ADgemvid-Android-v1.0.apk
           retention-days: 30
 
-      - name: 🌟 إنشاء إصدار GitHub Release ونشر الـ APK
+      - name: 🌟 إنشاء Release ونشر الـ APK
         if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
         continue-on-error: true
         uses: softprops/action-gh-release@v2
@@ -78,11 +79,9 @@ jobs:
           tag_name: v1.0.0-${{ github.run_number }}
           name: "ADgemvid Android App Release v1.0.0"
           body: |
-            ## 🎬 تطبيق ADgemvid الذكي لنظام أندرويد (Android APK)
-            
-            تم بناء ملف APK وتجميعه بنجاح عبر GitHub Actions.
+            ## 🎬 تطبيق ADgemvid الذكي لنظام أندرويد
+            تم بناء ملف الـ APK بنجاح عبر GitHub Actions.
             - **اسم الملف:** `ADgemvid-Android-v1.0.apk`
-            - **النظام المدعوم:** Android 7.0 وأحدث.
-            - **المميزات:** استوديو إعلانات الفيديو الذكي باللغة العربية، ومحرك التعليق الصوتي، والمونتاج بـ Audio Ducking.
+            - **طريقة التثبيت:** قم بتحميل الملف وثبته على هاتفك مباشرة.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
