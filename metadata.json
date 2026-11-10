@@ -1,0 +1,6 @@
+{
+  "name": "ADgemvid - مولد إعلانات الفيديو الذكي بالذكاء الاصطناعي",
+  "description": "تطبيق ذكي لإنشاء ومونتاج إعلانات الفيديو بالذكاء الاصطناعي مع تعليق صوتي عربي احترافي، مؤثرات صوتية متناسقة، ودعم تصدير كود Python Streamlit المتكامل.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
