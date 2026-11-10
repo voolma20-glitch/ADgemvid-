@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch: # يتيح تشغيل البناء يدوياً بضغطة زر واحدة من GitHub Actions
 
+permissions:
+  contents: write
+
 jobs:
   build-apk:
     name: Generate Android APK
@@ -24,7 +27,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          # تم إلغاء cache لتجنب الخطأ عند عدم وجود package-lock.json
+
+      - name: 🤖 إعداد بيئة Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: 📦 تثبيت حزم المشروع (Install Dependencies)
         run: |
@@ -34,15 +40,17 @@ jobs:
         run: |
           npm run build
 
-      - name: 📱 تثبيت محرك أندرويد عبر Capacitor (Setup Capacitor & Android Platform)
+      - name: 📱 تثبيت محرك أندرويد عبر Capacitor (Setup Capacitor & Android)
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android --save
+          npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
           npx cap add android || true
           npx cap sync android
 
       - name: 🔧 ضبط أذونات Gradle (Set Executable Permissions)
         run: |
-          chmod +x android/gradlew
+          if [ -f android/gradlew ]; then
+            chmod +x android/gradlew
+          fi
 
       - name: 🚀 بناء ملف APK بصيغة Debug (Assemble Android APK)
         run: |
@@ -52,7 +60,7 @@ jobs:
       - name: 🏷️ تجهيز وتسمية ملف APK (Prepare Output File)
         run: |
           mkdir -p output_apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk output_apk/ADgemvid-Android-v1.0.apk
+          find android/app/build/outputs/apk/debug/ -name "*.apk" -exec cp {} output_apk/ADgemvid-Android-v1.0.apk \;
 
       - name: 📤 رفع ملف APK كملف جاهز للتحميل (Upload APK Artifact)
         uses: actions/upload-artifact@v4
@@ -62,7 +70,8 @@ jobs:
           retention-days: 30
 
       - name: 🌟 إنشاء إصدار GitHub Release ونشر الـ APK
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           files: output_apk/ADgemvid-Android-v1.0.apk
