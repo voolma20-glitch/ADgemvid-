@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Header, PageTab } from './components/Header';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { AiDirectorChat } from './components/AiDirectorChat';
 import { VideoStudio } from './components/VideoStudio';
+import { CinematicEffectsStudio } from './components/CinematicEffectsStudio';
 import { SecureSettings } from './components/SecureSettings';
 import { PythonCodeViewer } from './components/PythonCodeViewer';
 import { AdInspirations } from './components/AdInspirations';
-import { Terminal, ShieldCheck, Heart, Sparkles, Video, Lock, Lightbulb, Code2 } from 'lucide-react';
+import { Terminal, ShieldCheck, Heart, Sparkles, Video, Lock, Lightbulb, Code2, Bot, Palette } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<PageTab>('studio');
+  const [activeTab, setActiveTab] = useState<PageTab>('chat');
   const [currentPrompt, setCurrentPrompt] = useState<string>(
     'إعلان عطر شرقي فاخر بنفحات العود الملكي والعنبر والمسك الأبيض مع خصم 30% وشحن مجاني وسريع لكافة المناطق بمناسبة يوم التأسيس.'
   );
@@ -55,7 +57,16 @@ export default function App() {
 
       {/* Main Page Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
-        {/* Page 1: 🎬 Studio */}
+        {/* Page 1: 💬 AI Director Chat */}
+        {activeTab === 'chat' && (
+          <AiDirectorChat
+            apiKey={apiKey}
+            defaultModel={defaultModel}
+            defaultVoice={defaultVoice}
+          />
+        )}
+
+        {/* Page 2: 🎬 Video Studio */}
         {activeTab === 'studio' && (
           <VideoStudio
             initialPrompt={currentPrompt}
@@ -67,12 +78,17 @@ export default function App() {
           />
         )}
 
-        {/* Page 2: 💡 Inspirations Bank */}
+        {/* Page 3: 🎨 Cinematic FX Lab */}
+        {activeTab === 'cinematic' && (
+          <CinematicEffectsStudio />
+        )}
+
+        {/* Page 4: 💡 Inspirations Bank */}
         {activeTab === 'inspirations' && (
           <AdInspirations onSelectPrompt={handleSelectInspiration} />
         )}
 
-        {/* Page 3: 🔒 Secure Vault & Settings */}
+        {/* Page 5: 🔒 Secure Vault & Settings */}
         {activeTab === 'settings' && (
           <SecureSettings
             apiKey={apiKey}
@@ -86,7 +102,7 @@ export default function App() {
           />
         )}
 
-        {/* Page 4: 💻 Python Code & Deployment Hub */}
+        {/* Page 6: 💻 Python Code & Deployment Hub */}
         {activeTab === 'code' && <PythonCodeViewer />}
       </main>
 
@@ -103,13 +119,13 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-200">ADgemvid Studio</span>
             <span>•</span>
-            <span>منصة صناعة إعلانات الفيديو الذكية باللغة العربية</span>
+            <span>المخرج الذكي لإعلانات الفيديو بالذكاء الاصطناعي والمؤثرات السينمائية</span>
           </div>
 
           <div className="flex items-center gap-4">
             <button
               onClick={() => setActiveTab('settings')}
-              className="text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 font-semibold"
+              className="text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 font-semibold cursor-pointer"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>خزنة المفاتيح المشفرة</span>
@@ -117,13 +133,13 @@ export default function App() {
             <span>•</span>
             <button
               onClick={() => setActiveTab('code')}
-              className="text-indigo-400 hover:text-indigo-300 transition flex items-center gap-1 font-semibold"
+              className="text-indigo-400 hover:text-indigo-300 transition flex items-center gap-1 font-semibold cursor-pointer"
             >
               <Terminal className="w-3.5 h-3.5" />
               <span>كود Python و Streamlit</span>
             </button>
             <span>•</span>
-            <span className="text-slate-500">Gemini 2.5/3.8 + Edge-TTS + MoviePy</span>
+            <span className="text-slate-500">Gemini 2.5/3.8 + OpenCV + MoviePy + Edge-TTS</span>
           </div>
         </div>
       </footer>

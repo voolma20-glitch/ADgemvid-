@@ -289,6 +289,127 @@ function generateContextualAdData(prompt: string, tone: string, duration: number
   };
 }
 
+// مسار محادثة المخرج الذكي (AI Video Director Chat)
+app.post('/api/chat-director', async (req: Request, res: Response) => {
+  try {
+    const {
+      messages = [],
+      videoName = 'tech.mp4',
+      customApiKey = '',
+      model = 'gemini-2.5-flash',
+      voice = 'ar-SA-HamedNeural',
+      tone = 'حماسي وسريع',
+      cinematicFilter = 'teal_orange',
+      cinematicLetterbox = true,
+      musicDucking = 0.15,
+    } = req.body;
+
+    const lastUserMessage = messages.length > 0 ? messages[messages.length - 1].content : 'إعلان ذكي';
+
+    let targetModel = model;
+    if (targetModel.includes('3.6') || targetModel.includes('3.5')) {
+      targetModel = 'gemini-3.8-flash';
+    }
+
+    const directorSystemInstruction = `
+أنت "المخرج الذكي" (AI Executive Video Director) في استوديو ADgemvid.
+أنت مخرج سينمائي وتسويقي عالمي متخصص في إعلانات الفيديو الرقمية القصيرة باللغة العربية.
+مهمتك: التفاعل الحواري مع المستخدم، وفهم طلبه بخصوص الإعلان والمونتاج (تغيير الصوت، تغيير الموسيقى، إضافة شريط سينمائي 2.35:1، إضافة مؤثرات Whoosh و Impact، تعديل نبرة الإعلان، تغيير الفلتر اللوني).
+عليك إرجاع رد JSON يحتوي على:
+1. "reply": رد حواري عربي مشوق ومحفز وموجز (فقرة أو فقرتين) من المخرج للمستخدم يشرح ما تم تنفيذه في هذا الإصدار.
+2. "ad_title": عنوان الإعلان المحدث.
+3. "hook_line": عبارة الافتتاح الخاطفة.
+4. "voiceover_script": نص التعليق الصوتي المطور المناسب للصوت (${voice}).
+5. "recommended_filter": أحد الفلاتر التالية: "teal_orange" أو "luxury" أو "cyberpunk" or "noir" or "natural".
+6. "recommended_letterbox": boolean (هل يُفضل شريط سينمائي أسود 2.35:1).
+7. "recommended_music": نمط الموسيقى ("music-upbeat" أو "music-cinematic" أو "music-luxury" أو "music-corporate").
+8. "sfx_list": مصفوفة بأسماء المؤثرات المقترحة ("sfx-whoosh", "sfx-impact", "sfx-riser", "sfx-chime").
+9. "scenes": مصفوفة بمشاهد الإعلان وتوقيتاتها ومؤثراتها.
+`;
+
+    const activeClient = customApiKey
+      ? new GoogleGenAI({
+          apiKey: customApiKey,
+          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
+        })
+      : ai;
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout calling Gemini API')), 8000)
+    );
+
+    const generatePromise = activeClient.models.generateContent({
+      model: targetModel,
+      contents: `سجل المحادثة السابق:
+${JSON.stringify(messages.slice(-5))}
+
+الطلب الأخير لصانع المحتوى:
+"${lastUserMessage}"
+الفيديو المرفق: ${videoName}
+النبرة المفضلة: ${tone}
+الصوت: ${voice}
+`,
+      config: {
+        systemInstruction: directorSystemInstruction,
+        responseMimeType: 'application/json',
+        temperature: 0.7,
+      },
+    });
+
+    const response = (await Promise.race([generatePromise, timeoutPromise])) as any;
+    const text = response?.text?.trim();
+
+    if (text) {
+      const parsed = JSON.parse(text);
+      return res.json({
+        ...parsed,
+        videoUrl: `/media/${videoName || 'tech.mp4'}`,
+        musicUrl: `/media/${parsed.recommended_music || 'music-cinematic'}.mp3`,
+      });
+    }
+
+    throw new Error('No response text');
+  } catch (error: any) {
+    // خطة احتياطية تفاعلية تحاكي المخرج الذكي
+    const p = (req.body?.messages?.[req.body.messages.length - 1]?.content || '').toLowerCase();
+    let replyText = 'مرحباً بك! لقد استمعت لطلبك بدقة وقمت بتوليد سكريبت سينمائي جذاب متوافق مع مقطع الفيديو المرفق، مع ضبط الأشرطة السينمائية ومؤثرات الانتقال الحركية.';
+    let chosenMusic = 'music-cinematic';
+    let chosenFilter = 'teal_orange';
+
+    if (p.includes('سلمى') || p.includes('نسائي')) {
+      replyText = 'ممتاز! تم تعديل نمط الإعلان ليتناسب مع نبرة سلمى الحيوية، وأضفنا خلفية موسيقية عصرية مع خفض تلقائي أثناء الكلام (Audio Ducking).';
+      chosenMusic = 'music-upbeat';
+    } else if (p.includes('عطر') || p.includes('فاخر') || p.includes('هادئ')) {
+      replyText = 'رؤية إخراجية رائعة! قمت بتطبيق الفلتر اللوني الدافئ (Warm Luxury) مع وتيرة تعليق هادئة تبرز فخامة المنتج وأصالة تفاصيله.';
+      chosenMusic = 'music-luxury';
+      chosenFilter = 'luxury';
+    } else if (p.includes('سريع') || p.includes('حماسي') || p.includes('تطبيق')) {
+      replyText = 'تم تحويل الفيديو إلى إعلان سريع خاطف للأبصار بنمط إعلانات التيك توك والريلز، مع مؤثرات Whoosh عند كل انتقال للمشاهد!';
+      chosenMusic = 'music-upbeat';
+    }
+
+    return res.json({
+      reply: replyText,
+      ad_title: 'إعلانك السينمائي الذكي',
+      hook_line: 'هل أنت مستعد لنقل تجربتك إلى المستوى التالي؟',
+      voiceover_script: 'اكتشف اليوم الحل الذي يجمع بين القوة والابتكار! جودة استثنائية، تصميم فائق، وأداء يتجاوز التوقعات. سارع بالطلب الآن واستمتع بالعرض الحصري!',
+      recommended_filter: chosenFilter,
+      recommended_letterbox: true,
+      recommended_music: chosenMusic,
+      sfx_list: ['sfx-whoosh', 'sfx-impact', 'sfx-chime'],
+      videoUrl: `/media/${req.body?.videoName || 'tech.mp4'}`,
+      musicUrl: `/media/${chosenMusic}.mp3`,
+      scenes: [
+        { time: '00:00 - 00:03', visual_prompt: 'افتتاحية سينمائية مع شريط 2.35:1', voice_part: 'هل تبحث عن سر التميز؟', sfx_cue: 'Fast Whoosh' },
+        { time: '00:03 - 00:15', visual_prompt: 'عرض المزايا مع تصحيح لوني فخم', voice_part: 'مع منتجنا، احصل على الجودة الفائقة والتجربة المبتكرة.', sfx_cue: 'Impact Boom' },
+        { time: '00:15 - 00:20', visual_prompt: 'شاشة الدعوة للطلب وشعار العرض', voice_part: 'اطلب الآن ولا تفوت الفرصة!', sfx_cue: 'Chime' },
+      ],
+      warning: error?.message || 'تم استخدام معالج المخرج السريع لضمان سرعة الاستجابة.',
+    });
+  }
+});
+
+
 // مسار استرجاع ملفات بايثون وملفات GitHub Actions و APK
 app.get('/api/python-assets', (req: Request, res: Response) => {
   try {
